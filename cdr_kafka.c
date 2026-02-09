@@ -73,6 +73,8 @@
 
 #include "asterisk.h"
 
+#include <unistd.h>
+
 #include "asterisk/cdr.h"
 #include "asterisk/config_options.h"
 #include "asterisk/json.h"
@@ -81,9 +83,13 @@
 #include "asterisk/paths.h"
 #include "asterisk/stringfields.h"
 #include "asterisk/utils.h"
+#include "asterisk/ast_version.h"
 
 #define CDR_NAME "Kafka"
 #define CONF_FILENAME "cdr_kafka.conf"
+
+/*! \brief Cached hostname, set once during load_module(). */
+static char cached_hostname[256];
 
 /*! \brief global config structure */
 struct cdr_kafka_global_conf {
@@ -365,11 +371,45 @@ static int kafka_cdr_log(struct ast_cdr *cdr)
 		return -1;
 	}
 
-	res = ast_kafka_produce(producer,
-		conf->global->topic,
-		cdr_get_key_value(cdr, conf->global->key),
-		str,
-		strlen(str));
+	/* Build Kafka message headers */
+	{
+		char eid_str[20];
+		char ts_str[32];
+		struct ast_kafka_header hdrs[5];
+		size_t hdr_count = 0;
+
+		ast_eid_to_str(eid_str, sizeof(eid_str), &ast_eid_default);
+		snprintf(ts_str, sizeof(ts_str), "%ld", (long) time(NULL));
+
+		hdrs[hdr_count].name = "entity_id";
+		hdrs[hdr_count].value = eid_str;
+		hdr_count++;
+
+		if (!ast_strlen_zero(ast_config_AST_SYSTEM_NAME)) {
+			hdrs[hdr_count].name = "system_name";
+			hdrs[hdr_count].value = ast_config_AST_SYSTEM_NAME;
+			hdr_count++;
+		}
+
+		hdrs[hdr_count].name = "asterisk_version";
+		hdrs[hdr_count].value = ast_get_version();
+		hdr_count++;
+
+		hdrs[hdr_count].name = "timestamp";
+		hdrs[hdr_count].value = ts_str;
+		hdr_count++;
+
+		hdrs[hdr_count].name = "hostname";
+		hdrs[hdr_count].value = cached_hostname;
+		hdr_count++;
+
+		res = ast_kafka_produce_hdrs(producer,
+			conf->global->topic,
+			cdr_get_key_value(cdr, conf->global->key),
+			str,
+			strlen(str),
+			hdrs, hdr_count);
+	}
 
 	ao2_cleanup(producer);
 
@@ -405,6 +445,10 @@ static int load_config(int reload)
 
 static int load_module(void)
 {
+	if (gethostname(cached_hostname, sizeof(cached_hostname)) != 0) {
+		ast_copy_string(cached_hostname, "unknown", sizeof(cached_hostname));
+	}
+
 	if (aco_info_init(&cfg_info) != 0) {
 		ast_log(LOG_ERROR, "Failed to initialize config");
 		aco_info_destroy(&cfg_info);
