@@ -6,6 +6,8 @@ Asterisk CDR (Call Detail Record) backend that publishes call records as JSON to
 
 Every completed call in Asterisk generates a CDR. This module registers as a CDR backend and publishes each record as a JSON message to a configurable Kafka topic, replacing traditional file or database CDR storage with a real-time event stream.
 
+Each CDR is enriched with system identification fields (`EntityID` and `SystemName`) so that consumers can distinguish which Asterisk instance originated the record — essential in multi-server environments.
+
 ### JSON Output
 
 ```json
@@ -28,9 +30,13 @@ Every completed call in Asterisk generates a CDR. This module registers as a CDR
   "amaflags": "DOCUMENTATION",
   "peeraccount": "",
   "linkedid": "1705312200.1",
-  "sequence": 0
+  "sequence": 0,
+  "EntityID": "00:11:22:33:44:55",
+  "SystemName": "pbx-01"
 }
 ```
+
+`EntityID` is always present (auto-detected from the network interface MAC address, or set via `entityid` in `asterisk.conf`). `SystemName` is only included when `systemname` is configured in `asterisk.conf`.
 
 Optional fields `uniqueid` and `userfield` can be enabled in the configuration. CDR variables set via `func_cdr` are also included automatically.
 
@@ -103,10 +109,11 @@ Make a test call and verify that a JSON CDR record appears in the consumer outpu
 The module registers itself as a CDR backend via `ast_cdr_register()`. When Asterisk finalizes a CDR, it calls `kafka_cdr_log()` which:
 
 1. Packs all CDR fields into an `ast_json` object
-2. Appends any CDR variables from `func_cdr`
-3. Optionally adds `uniqueid` and `userfield`
-4. Serializes to a JSON string
-5. Calls `ast_kafka_produce()` to enqueue in librdkafka's internal buffer (non-blocking)
+2. Injects `EntityID` and `SystemName` for server identification
+3. Appends any CDR variables from `func_cdr`
+4. Optionally adds `uniqueid` and `userfield`
+5. Serializes to a JSON string
+6. Calls `ast_kafka_produce()` to enqueue in librdkafka's internal buffer (non-blocking)
 
 A cached producer (`AO2_GLOBAL_OBJ_STATIC`) avoids mutex contention on every CDR write.
 

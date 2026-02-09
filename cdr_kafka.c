@@ -78,7 +78,9 @@
 #include "asterisk/json.h"
 #include "asterisk/module.h"
 #include "asterisk/kafka.h"
+#include "asterisk/paths.h"
 #include "asterisk/stringfields.h"
+#include "asterisk/utils.h"
 
 #define CDR_NAME "Kafka"
 #define CONF_FILENAME "cdr_kafka.conf"
@@ -326,6 +328,16 @@ static int kafka_cdr_log(struct ast_cdr *cdr)
 		return -1;
 	}
 
+	/* Inject system identification */
+	{
+		char eid_str[20];
+		ast_eid_to_str(eid_str, sizeof(eid_str), &ast_eid_default);
+		ast_json_object_set(json, "EntityID", ast_json_string_create(eid_str));
+	}
+	if (!ast_strlen_zero(ast_config_AST_SYSTEM_NAME)) {
+		ast_json_object_set(json, "SystemName",
+			ast_json_string_create(ast_config_AST_SYSTEM_NAME));
+	}
 
 	struct ast_var_t *var_entry;
 
