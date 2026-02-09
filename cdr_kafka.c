@@ -231,6 +231,7 @@ static int setup_cached_producer(void)
  * \param field_name The CDR field name (e.g. "linkedid", "src").
  * \return The field value string, or NULL if field_name is empty/unknown.
  */
+const char *cdr_get_key_value(struct ast_cdr *cdr, const char *field_name);
 const char *cdr_get_key_value(struct ast_cdr *cdr, const char *field_name)
 {
 	if (ast_strlen_zero(field_name)) {
