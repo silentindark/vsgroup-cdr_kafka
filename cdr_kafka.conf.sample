@@ -6,3 +6,7 @@
 ;loguserfield = no      ; log user field.  Default is "no"
 ;connection = my-kafka  ; Connection name in kafka.conf
 ;topic = asterisk_cdr   ; Topic name to publish to; defaults to asterisk_cdr
+;key =                  ; CDR field to use as Kafka message key for partitioning.
+                        ; Valid values: linkedid, uniqueid, channel, dstchannel,
+                        ; accountcode, src, dst, dcontext, tenantid.
+                        ; Empty (default) means no key.

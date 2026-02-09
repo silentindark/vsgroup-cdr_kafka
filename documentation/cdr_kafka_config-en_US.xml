@@ -30,6 +30,16 @@
                                                 <para>Defaults to asterisk_cdr</para>
                                         </description>
                                 </configOption>
+                                <configOption name="key">
+                                        <synopsis>CDR field to use as Kafka message key</synopsis>
+                                        <description>
+                                                <para>Name of the CDR field whose value is sent as
+                                                the Kafka message key for partitioning. Valid values:
+                                                linkedid, uniqueid, channel, dstchannel, accountcode,
+                                                src, dst, dcontext, tenantid.
+                                                Empty (default) means no key.</para>
+                                        </description>
+                                </configOption>
                         </configObject>
                 </configFile>
         </configInfo>

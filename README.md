@@ -68,6 +68,7 @@ Edit `/etc/asterisk/cdr_kafka.conf`:
 [global]
 connection = my-kafka          ; Connection name from kafka.conf (required)
 topic = asterisk_cdr           ; Kafka topic (default: asterisk_cdr)
+key = linkedid                 ; CDR field for Kafka key (default: empty/none)
 loguniqueid = no               ; Include call uniqueid (default: no)
 loguserfield = no              ; Include user field (default: no)
 ```
@@ -78,6 +79,7 @@ loguserfield = no              ; Include user field (default: no)
 |--------|---------|-------------|
 | `connection` | *(empty)* | Name of the connection defined in `kafka.conf` for `res_kafka`. Required. |
 | `topic` | `asterisk_cdr` | Kafka topic to publish CDR records to. |
+| `key` | *(empty)* | CDR field to use as Kafka message key for partitioning. Valid values: `linkedid`, `uniqueid`, `channel`, `dstchannel`, `accountcode`, `src`, `dst`, `dcontext`, `tenantid`. Empty means no key. |
 | `loguniqueid` | `no` | When `yes`, adds the `uniqueid` field to the JSON output. |
 | `loguserfield` | `no` | When `yes`, adds the `userfield` field to the JSON output. |
 

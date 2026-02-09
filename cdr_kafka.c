@@ -56,6 +56,16 @@
 						<para>Defaults to asterisk_cdr</para>
 					</description>
 				</configOption>
+				<configOption name="key">
+					<synopsis>CDR field to use as Kafka message key</synopsis>
+					<description>
+						<para>Name of the CDR field whose value is sent as the
+						Kafka message key for partitioning. Valid values:
+						linkedid, uniqueid, channel, dstchannel, accountcode,
+						src, dst, dcontext, tenantid.
+						Empty (default) means no key.</para>
+					</description>
+				</configOption>
 			</configObject>
 		</configFile>
 	</configInfo>
@@ -80,6 +90,8 @@ struct cdr_kafka_global_conf {
 		AST_STRING_FIELD(connection);
 		/*! \brief topic name */
 		AST_STRING_FIELD(topic);
+		/*! \brief CDR field name to use as Kafka key */
+		AST_STRING_FIELD(key);
 	);
 	/*! \brief whether to log the unique id */
 	int loguniqueid;
@@ -211,6 +223,42 @@ static int setup_cached_producer(void)
 }
 
 /*!
+ * \brief Extract the value of a named CDR field for use as Kafka key.
+ *
+ * \param cdr The CDR record.
+ * \param field_name The CDR field name (e.g. "linkedid", "src").
+ * \return The field value string, or NULL if field_name is empty/unknown.
+ */
+static const char *cdr_get_key_value(struct ast_cdr *cdr, const char *field_name)
+{
+	if (ast_strlen_zero(field_name)) {
+		return NULL;
+	}
+
+	if (!strcasecmp(field_name, "linkedid")) {
+		return cdr->linkedid;
+	} else if (!strcasecmp(field_name, "uniqueid")) {
+		return cdr->uniqueid;
+	} else if (!strcasecmp(field_name, "channel")) {
+		return cdr->channel;
+	} else if (!strcasecmp(field_name, "dstchannel")) {
+		return cdr->dstchannel;
+	} else if (!strcasecmp(field_name, "accountcode")) {
+		return cdr->accountcode;
+	} else if (!strcasecmp(field_name, "src")) {
+		return cdr->src;
+	} else if (!strcasecmp(field_name, "dst")) {
+		return cdr->dst;
+	} else if (!strcasecmp(field_name, "dcontext")) {
+		return cdr->dcontext;
+	} else if (!strcasecmp(field_name, "tenantid")) {
+		return cdr->tenantid;
+	}
+
+	return NULL;
+}
+
+/*!
  * \brief CDR handler for Kafka.
  *
  * \param cdr CDR to log.
@@ -306,7 +354,7 @@ static int kafka_cdr_log(struct ast_cdr *cdr)
 
 	res = ast_kafka_produce(producer,
 		conf->global->topic,
-		NULL, /* key */
+		cdr_get_key_value(cdr, conf->global->key),
 		str,
 		strlen(str));
 
@@ -362,6 +410,9 @@ static int load_module(void)
 	aco_option_register(&cfg_info, "topic", ACO_EXACT,
 		global_options, "asterisk_cdr", OPT_STRINGFIELD_T, 0,
 		STRFLDSET(struct cdr_kafka_global_conf, topic));
+	aco_option_register(&cfg_info, "key", ACO_EXACT,
+		global_options, "", OPT_STRINGFIELD_T, 0,
+		STRFLDSET(struct cdr_kafka_global_conf, key));
 
 	if (load_config(0) != 0) {
 		ast_log(LOG_WARNING, "Configuration failed to load\n");
