@@ -3,6 +3,9 @@
 <docs xmlns:xi="http://www.w3.org/2001/XInclude">
         <configInfo name="cdr_kafka" language="en_US">
                 <synopsis>Kafka CDR Backend</synopsis>
+                <description>
+                        <para>This module sends CDR records to Apache Kafka.</para>
+                </description>
                 <configFile name="cdr_kafka.conf">
                         <configObject name="global">
                                 <synopsis>Global configuration settings</synopsis>

@@ -29,6 +29,9 @@
 /*** DOCUMENTATION
 	<configInfo name="cdr_kafka" language="en_US">
 		<synopsis>Kafka CDR Backend</synopsis>
+		<description>
+			<para>This module sends CDR records to Apache Kafka.</para>
+		</description>
 		<configFile name="cdr_kafka.conf">
 			<configObject name="global">
 				<synopsis>Global configuration settings</synopsis>
@@ -59,8 +62,8 @@
 				<configOption name="key">
 					<synopsis>CDR field to use as Kafka message key</synopsis>
 					<description>
-						<para>Name of the CDR field whose value is sent as the
-						Kafka message key for partitioning. Valid values:
+						<para>Name of the CDR field whose value is sent as
+						the Kafka message key for partitioning. Valid values:
 						linkedid, uniqueid, channel, dstchannel, accountcode,
 						src, dst, dcontext, tenantid.
 						Empty (default) means no key.</para>
